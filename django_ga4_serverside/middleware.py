@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .utils import store_context
+from .utils import store_context, process_analytics
 
 
 class TrackingMiddleware(object):
@@ -7,7 +7,8 @@ class TrackingMiddleware(object):
 		self.get_response = get_response
 
 	def __call__(self, request):
-		token = store_context(request, None) # response not available
+		store_context(request, None) # response not available
 		response = self.get_response(request)
 		store_context(request, response) # response finished, store it
+		process_analytics(request, response)
 		return response
