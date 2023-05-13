@@ -1,0 +1,59 @@
+[project]
+name = "django_ga4_serverside"
+description = "Server side GA4 tracking"
+readme = "README.rst"
+requires-python = ">=3.7"
+keywords = ["django"]
+license = {text = "MIT"}
+#dynamic = ["version"]
+version = "0.0.0"
+authors = [
+	{ name = "Miroslav Bendík", email = "miroslav.bendik@gmail.com" }
+]
+classifiers = [
+	"Environment :: Web Environment",
+	"Framework :: Django",
+	"Intended Audience :: Developers",
+	"License :: OSI Approved :: BSD License",
+	"Operating System :: OS Independent",
+	"Programming Language :: Python",
+	"Programming Language :: Python :: 3",
+	"Topic :: Internet :: WWW/HTTP",
+	"Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
+dependencies = [
+	"django",
+	'contextvars;python_version<"3.7"',
+	'dataclasses;python_version<"3.7"',
+]
+
+[project.urls]
+homepage = "https://github.com/mireq/django-ga4-serverside"
+documentation = "https://github.com/mireq/django-ga4-serverside"
+repository = "https://github.com/mireq/django-ga4-serverside"
+changelog = "https://github.com/mireq/django-ga4-serverside/blob/master/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+	"tox",
+	"pylint",
+	"pre-commit",
+	"bump2version",
+	"commitizen",
+]
+
+[build-system]
+#requires = ["setuptools", "setuptools-scm", "wheel"]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["django_ga4_serverside*"]
+
+#[tool.setuptools_scm]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.1"
+tag_format = "$version"

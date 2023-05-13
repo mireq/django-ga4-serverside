@@ -1,0 +1,12 @@
+db.sqlite3
+/django_ga4_serverside.egg-info
+.envrc
+*~
+*.pyc
+.ropeproject
+.coverage
+.tox
+build
+/dist
+/htmlcov
+/coverage.xml
