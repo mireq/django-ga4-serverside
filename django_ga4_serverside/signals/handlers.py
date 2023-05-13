@@ -2,7 +2,8 @@
 from django.core.signals import request_finished
 from django.dispatch.dispatcher import receiver
 
-from ..utils import get_context, get_payload
+from ..utils import get_context, generate_payload
+from django.template.response import TemplateResponse
 
 
 @receiver(request_finished)
@@ -10,3 +11,4 @@ def on_request_finished(sender, **kwargs): #! pylint: disable=unused-argument
 	context = get_context()
 	if context is None:
 		return
+	payload = generate_payload(context)

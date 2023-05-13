@@ -5,10 +5,11 @@ import random
 import typing
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Optional, List, Tuple
+from typing import Optional, Tuple, Dict
 
 from django.conf import settings
 from django.utils import timezone
+from lxml import html
 
 
 if typing.TYPE_CHECKING:
@@ -27,7 +28,6 @@ COOKIE_AGE = 31536000 # 1 year
 class RequestContext:
 	request: 'HttpRequest'
 	response: 'HttpResponse'
-
 
 
 def get_absolute_name(path):
@@ -50,14 +50,29 @@ def get_context() -> Optional[RequestContext]:
 	return _context.get(None)
 
 
-def store_event(event: dict, request: 'HttpRequest' = None):
+def _get_request_payload(request: 'HttpRequest' = None):
 	if request is None:
 		context = get_context()
 		if context is None:
 			logger.error("Request not available, check if django_ga4_serverside.middleware.TrackingMiddleware is in MIDDLEWARE settings")
 			return
 		request = context.request
-	getattr(request, ANALYTICS_EVENTS_KEY)['events'].append(event)
+	return getattr(request, ANALYTICS_EVENTS_KEY)
+
+
+def store_event(name: str, params: dict, request: 'HttpRequest' = None):
+	payload = _get_request_payload(request)
+	if payload is not None:
+		payload['events'].append({
+			'name': name,
+			'params': params,
+		})
+
+
+def store_parameters(request: 'HttpRequest' = None, **kwargs: Dict[str, str]):
+	payload = _get_request_payload(request)
+	if payload is not None:
+		payload.update(kwargs)
 
 
 def get_payload() -> Optional[dict]:
@@ -67,41 +82,120 @@ def get_payload() -> Optional[dict]:
 	return getattr(context.request, ANALYTICS_EVENTS_KEY)
 
 
-def generate_user_id() -> str:
+def generate_client_id() -> str:
 	rnd = random.randint(0, 4294967296)
 	time = int(timezone.now().timestamp())
 	return f'{rnd}.{time}'
 
 
-def get_or_create_user_id(request: 'HttpRequest') -> Tuple[str, bool]:
-	user_id = request.COOKIES.get(COOKIE_NAME)
-	if user_id is None:
-		return generate_user_id(), True
+def get_or_create_client_id(request: 'HttpRequest') -> Tuple[str, bool]:
+	client_id = request.COOKIES.get(COOKIE_NAME)
+	if client_id is None:
+		return generate_client_id(), True
 	else:
-		return user_id, False
+		return client_id, False
 
 
-def store_user_cookie(response: 'HttpResponse', user_id: str):
+def store_user_cookie(response: 'HttpResponse', client_id: str):
 	response.set_cookie(
 		COOKIE_NAME,
-		user_id,
+		client_id,
 		max_age=COOKIE_AGE,
 	)
 
 
 def _process_analytics(request: 'HttpRequest', response: 'HttpResponse'):
-	user_id, created = get_or_create_user_id(request)
+	client_id, created = get_or_create_client_id(request)
 	if created:
-		store_user_cookie(response, user_id)
+		store_user_cookie(response, client_id)
+	store_parameters(request, client_id=client_id)
 
 
-def process_analytics(request, response: 'HttpResponse'):
+def process_analytics(request: 'HttpRequest', response: 'HttpResponse'):
 	if process_analytics.impl is None:
 		return _process_analytics(request, response)
 	else:
-		process_analytics.impl(request, response)
+		return process_analytics.impl(request, response)
 process_analytics.impl = None # overriden module
 
 
 if getattr(settings, 'GA4_PROCESS_ANALYTICS', None):
 	process_analytics.impl = get_absolute_name(settings.GA4_PROCESS_ANALYTICS)
+
+
+def get_page_info(context: RequestContext) -> Optional[dict]:
+	# record only HTML
+	content_type = context.response.headers.get('Content-Type', '')
+	if not content_type.startswith('text/html'):
+		return
+
+	# skip streaming and empty responses
+	try:
+		content = context.response.content
+	except AttributeError:
+		return
+	if not content:
+		return
+
+	document = html.fromstring(content)
+	page_title = ''
+	page_title_element = document.find('./head/title')
+	if page_title_element is not None:
+		page_title = page_title_element.text.strip()
+
+	return {
+		'page_location': context.request.build_absolute_uri(context.request.get_full_path()),
+		'page_title': page_title,
+	}
+
+
+def _generate_payload(context: RequestContext) -> Optional[dict]:
+	# dont continue if payload is not defined
+	payload = get_payload()
+	if not payload:
+		return
+
+	#store only OK responses
+	if context.response.status_code != 200:
+		return
+
+	# generate page view event if it's needed
+	has_page_view = any(event.get('name') == 'page_view' for event in payload['events'])
+
+	if not has_page_view:
+		page_info = get_page_info(context)
+		if page_info is not None:
+			payload['events'].insert(0, {
+				'name': 'page_view',
+				'params': page_info,
+			})
+
+	user_agent = context.request.headers.get('User-Agent')
+	if user_agent:
+		user_agent = user_agent[:100]
+	client_ip = context.request.META.get('REMOTE_ADDR', '')
+
+	for event in payload['events']:
+		if event['name'] == 'page_view':
+			if user_agent:
+				event['params']['user_agent'] = user_agent
+			if client_ip:
+				event['params']['client_ip'] = client_ip
+
+	# don't send empty payloads
+	if not payload['events']:
+		return
+
+	return payload
+
+
+def generate_payload(context: RequestContext) -> Optional[dict]:
+	if generate_payload.impl is None:
+		return _generate_payload(context)
+	else:
+		return generate_payload.impl(context)
+generate_payload.impl = None # overriden module
+
+
+if getattr(settings, 'GA4_GENERATE_PAYLOAD', None):
+	generate_payload.impl = get_absolute_name(settings.GA4_GENERATE_PAYLOAD)
