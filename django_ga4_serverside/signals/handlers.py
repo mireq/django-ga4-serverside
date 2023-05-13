@@ -2,7 +2,7 @@
 from django.core.signals import request_finished
 from django.dispatch.dispatcher import receiver
 
-from ..utils import get_context, get_stored_events
+from ..utils import get_context, get_payload
 
 
 @receiver(request_finished)

@@ -42,7 +42,7 @@ def get_absolute_name(path):
 
 def store_context(request: 'HttpRequest', response: 'HttpResponse') -> contextvars.Token:
 	if request is not None and not hasattr(request, ANALYTICS_EVENTS_KEY):
-		setattr(request, ANALYTICS_EVENTS_KEY, [])
+		setattr(request, ANALYTICS_EVENTS_KEY, {'events': []})
 	return _context.set(RequestContext(request, response))
 
 
@@ -57,13 +57,13 @@ def store_event(event: dict, request: 'HttpRequest' = None):
 			logger.error("Request not available, check if django_ga4_serverside.middleware.TrackingMiddleware is in MIDDLEWARE settings")
 			return
 		request = context.request
-	getattr(request, ANALYTICS_EVENTS_KEY).append(event)
+	getattr(request, ANALYTICS_EVENTS_KEY)['events'].append(event)
 
 
-def get_stored_events() -> List[dict]:
+def get_payload() -> Optional[dict]:
 	context = get_context()
 	if context is None:
-		return []
+		return None
 	return getattr(context.request, ANALYTICS_EVENTS_KEY)
 
 
