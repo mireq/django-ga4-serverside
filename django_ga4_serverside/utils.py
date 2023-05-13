@@ -14,6 +14,7 @@ _context = contextvars.ContextVar('context')
 logger = logging.getLogger(__name__)
 ANALYTICS_EVENTS_KEY = '_analytics'
 COOKIE_NAME = '_uid'
+COOKIE_AGE = 31536000 # 1 year
 LastRequest = namedtuple('LastRequest', ['request', 'response'])
 
 
@@ -70,7 +71,12 @@ def get_or_create_user_id(request) -> Tuple[str, bool]:
 
 def _process_analytics(request, response):
 	user_id, created = get_or_create_user_id(request)
-	print(user_id, created)
+	if created:
+		response.set_cookie(
+			COOKIE_NAME,
+			user_id,
+			max_age=COOKIE_AGE,
+		)
 
 
 def process_analytics(request, response):
