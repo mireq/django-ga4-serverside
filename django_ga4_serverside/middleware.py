@@ -7,6 +7,7 @@ class TrackingMiddleware(object):
 		self.get_response = get_response
 
 	def __call__(self, request):
+		store_last(request, None) # response not available
 		response = self.get_response(request)
-		store_last(request, response)
+		store_last(request, response) # response finished, store it
 		return response
