@@ -50,6 +50,10 @@ def get_context() -> Optional[RequestContext]:
 	return _context.get(None)
 
 
+def clear_context():
+	return _context.set(None)
+
+
 def _get_request_payload(request: 'HttpRequest' = None):
 	if request is None:
 		context = get_context()
