@@ -47,3 +47,17 @@ implementation configures client_id from cookies. Default implementation:
 `GA4_GENERATE_PAYLOAD` - callback to generate payload
 
 `GA4_SHOULD_TRACK_CALLBACK` - callback to filter tracked requests
+
+API
+---
+
+Storing custom events
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+	from django_ga4_serverside.utils import store_event
+
+	# inside view
+
+	store_event('custom_event', {'custom': 'property'})
