@@ -2,6 +2,7 @@
 import contextvars
 import logging
 import random
+import re
 import typing
 from dataclasses import dataclass
 from importlib import import_module
@@ -22,6 +23,8 @@ logger = logging.getLogger(__name__)
 ANALYTICS_EVENTS_KEY = '_analytics'
 COOKIE_NAME = '_uid'
 COOKIE_AGE = 31536000 # 1 year
+if ignore_url_regex := getattr(settings, 'GA4_IGNORE_URL_REGEX', None):
+	ignore_url_regex = re.compile(ignore_url_regex)
 
 
 @dataclass
@@ -205,3 +208,24 @@ generate_payload.impl = None # overriden module
 
 if getattr(settings, 'GA4_GENERATE_PAYLOAD', None):
 	generate_payload.impl = get_absolute_name(settings.GA4_GENERATE_PAYLOAD)
+
+
+def _should_track_callback(context: RequestContext) -> bool:
+	if ignore_url_regex and ignore_url_regex.match(context.request.path):
+		return False
+	user_agent = context.request.headers.get('User-Agent')
+	if not user_agent:
+		return False
+	return True
+
+
+def should_track_callback(context: RequestContext) -> bool:
+	if should_track_callback.impl is None:
+		return _should_track_callback(context)
+	else:
+		return should_track_callback.impl(context)
+should_track_callback.impl = None # overriden module
+
+
+if getattr(settings, 'GA4_SHOULD_TRACK_CALLBACK', None):
+	should_track_callback.impl = get_absolute_name(settings.GA4_SHOULD_TRACK_CALLBACK)

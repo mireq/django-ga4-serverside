@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.signals import request_finished
 from django.dispatch.dispatcher import receiver
 
-from ..utils import get_context, generate_payload, clear_context
+from ..utils import get_context, generate_payload, clear_context, should_track_callback
 
 
 MEASUREMENT_URL = 'https://www.google-analytics.com/mp/collect?'
@@ -21,14 +21,16 @@ logger = logging.getLogger(__name__)
 def on_request_finished(sender, **kwargs): #! pylint: disable=unused-argument
 	context = get_context()
 	payload = None
-	if context is None:
-		clear_context()
-		return
-	else:
-		payload = generate_payload(context)
-		clear_context()
-		if payload is None:
+	try:
+		if not context:
 			return
+		if not should_track_callback(context):
+			return
+		payload = generate_payload(context)
+		if not payload:
+			return
+	finally:
+		clear_context()
 
 	debug = getattr(settings, 'GA4_DEBUG', False)
 	query = urlencode({'measurement_id': settings.GA4_ID, 'api_secret': settings.GA4_SECRET})
