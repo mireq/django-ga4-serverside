@@ -182,14 +182,11 @@ def _generate_payload(context: RequestContext) -> Optional[dict]:
 	user_agent = context.request.headers.get('User-Agent')
 	if user_agent:
 		user_agent = user_agent[:100]
-	client_ip = context.request.META.get('REMOTE_ADDR', '')
 
 	for event in payload['events']:
 		if event['name'] == 'page_view':
 			if user_agent:
 				event['params']['user_agent'] = user_agent
-			if client_ip:
-				event['params']['client_ip'] = client_ip
 
 	# don't send empty payloads
 	if not payload['events']:
