@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import sys
 from urllib import request
 from urllib.parse import urlencode
 
@@ -12,6 +13,7 @@ from ..utils import get_context, generate_payload, clear_context
 
 
 MEASUREMENT_URL = 'https://www.google-analytics.com/mp/collect?'
+MEASUREMENT_DEBUG_URL = 'https://www.google-analytics.com/debug/mp/collect?'
 logger = logging.getLogger(__name__)
 
 
@@ -28,8 +30,10 @@ def on_request_finished(sender, **kwargs): #! pylint: disable=unused-argument
 		if payload is None:
 			return
 
+	debug = getattr(settings, 'GA4_DEBUG', False)
 	query = urlencode({'measurement_id': settings.GA4_ID, 'api_secret': settings.GA4_SECRET})
-	url = f'{MEASUREMENT_URL}?{query}'
+	url = MEASUREMENT_DEBUG_URL if debug else MEASUREMENT_URL
+	url = f'{url}?{query}'
 	payload = json.dumps(payload).encode('utf-8')
 
 	user_agent = context.request.headers.get('User-Agent')
@@ -41,3 +45,6 @@ def on_request_finished(sender, **kwargs): #! pylint: disable=unused-argument
 	result = request.urlopen(req, payload)
 	if result.status < 200 or result.status >= 300:
 		logger.warning("Failed to send event: %s", str(result.status))
+	if debug:
+		sys.stdout.write(f"URL {url}\n")
+		__import__('pprint').pprint(json.loads(result.read()))
