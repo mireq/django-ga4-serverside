@@ -124,7 +124,7 @@ if getattr(settings, 'GA4_PROCESS_ANALYTICS', None):
 
 
 def get_page_info(context: RequestContext) -> Optional[dict]:
-	# record only HTML
+	# cannot get info from other sources than HTML
 	content_type = context.response.headers.get('Content-Type', '')
 	if not content_type.startswith('text/html'):
 		return
@@ -157,6 +157,11 @@ def _generate_payload(context: RequestContext) -> Optional[dict]:
 
 	#store only OK responses
 	if context.response.status_code != 200:
+		return
+
+	# record only HTML
+	content_type = context.response.headers.get('Content-Type', '')
+	if not content_type.startswith('text/html'):
 		return
 
 	# generate page view event if it's needed
