@@ -9,6 +9,6 @@ class TrackingMiddleware(object):
 	def __call__(self, request):
 		store_context(request, None) # response not available
 		response = self.get_response(request)
-		store_context(request, response) # response finished, store it
-		process_analytics(request, response)
+		context = store_context(request, response) # response finished, store it
+		process_analytics(context)
 		return response

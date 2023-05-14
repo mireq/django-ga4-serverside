@@ -44,10 +44,12 @@ def get_absolute_name(path):
 	return cls
 
 
-def store_context(request: 'HttpRequest', response: 'HttpResponse') -> contextvars.Token:
+def store_context(request: 'HttpRequest', response: 'HttpResponse') -> RequestContext:
 	if request is not None and not hasattr(request, ANALYTICS_EVENTS_KEY):
 		setattr(request, ANALYTICS_EVENTS_KEY, {'events': []})
-	return _context.set(RequestContext(request, response))
+	ctx = RequestContext(request, response)
+	_context.set(ctx)
+	return ctx
 
 
 def get_context() -> Optional[RequestContext]:
@@ -112,18 +114,18 @@ def store_user_cookie(response: 'HttpResponse', client_id: str):
 	)
 
 
-def _process_analytics(request: 'HttpRequest', response: 'HttpResponse'):
-	client_id, created = get_or_create_client_id(request)
+def _process_analytics(context: RequestContext):
+	client_id, created = get_or_create_client_id(context.request)
 	if created:
-		store_user_cookie(response, client_id)
-	store_parameters(request, client_id=client_id)
+		store_user_cookie(context.response, client_id)
+	store_parameters(context.request, client_id=client_id)
 
 
-def process_analytics(request: 'HttpRequest', response: 'HttpResponse'):
+def process_analytics(context: RequestContext):
 	if process_analytics.impl is None:
-		return _process_analytics(request, response)
+		return _process_analytics(context)
 	else:
-		return process_analytics.impl(request, response)
+		return process_analytics.impl(context)
 process_analytics.impl = None # overriden module
 
 
