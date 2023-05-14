@@ -33,7 +33,7 @@ def on_request_finished(sender, **kwargs): #! pylint: disable=unused-argument
 	debug = getattr(settings, 'GA4_DEBUG', False)
 	query = urlencode({'measurement_id': settings.GA4_ID, 'api_secret': settings.GA4_SECRET})
 	url = MEASUREMENT_DEBUG_URL if debug else MEASUREMENT_URL
-	url = f'{url}?{query}'
+	url = f'{url}{query}'
 	payload = json.dumps(payload).encode('utf-8')
 
 	user_agent = context.request.headers.get('User-Agent')
