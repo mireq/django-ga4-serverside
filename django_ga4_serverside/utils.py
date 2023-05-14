@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from importlib import import_module
 from typing import Optional, Tuple, Dict
 
+from crawlerdetect import CrawlerDetect
 from django.conf import settings
 from django.utils import timezone
 from lxml import html
@@ -210,11 +211,16 @@ if getattr(settings, 'GA4_GENERATE_PAYLOAD', None):
 	generate_payload.impl = get_absolute_name(settings.GA4_GENERATE_PAYLOAD)
 
 
+crawler_detect = CrawlerDetect()
+
+
 def _should_track_callback(context: RequestContext) -> bool:
 	if ignore_url_regex and ignore_url_regex.match(context.request.path):
 		return False
 	user_agent = context.request.headers.get('User-Agent')
 	if not user_agent:
+		return False
+	if crawler_detect.isCrawler(user_agent):
 		return False
 	return True
 
