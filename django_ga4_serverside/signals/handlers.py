@@ -34,14 +34,12 @@ def on_request_finished(sender, **kwargs): #! pylint: disable=unused-argument
 	query = urlencode({'measurement_id': settings.GA4_ID, 'api_secret': settings.GA4_SECRET})
 	url = MEASUREMENT_DEBUG_URL if debug else MEASUREMENT_URL
 	url = f'{url}{query}'
-	payload = json.dumps(payload).encode('utf-8')
 
-	user_agent = context.request.headers.get('User-Agent')
+	payload = json.dumps(payload).encode('utf-8')
 
 	req = request.Request(url)
 	req.add_header('Content-Type', 'application/json; charset=utf-8')
-	if user_agent is not None:
-		req.add_header('User-Agent', user_agent)
+	req.add_header('User-Agent', 'django_ga4_serverside')
 	result = request.urlopen(req, payload)
 	if result.status < 200 or result.status >= 300:
 		logger.warning("Failed to send event: %s", str(result.status))
