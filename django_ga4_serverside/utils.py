@@ -190,6 +190,8 @@ def _generate_payload(context: RequestContext) -> Optional[dict]:
 		user_agent = user_agent[:100]
 
 	for event in payload['events']:
+		event.setdefault('params', {})
+		event['params'].setdefault('engagement_time_msec', 1)
 		if event['name'] == 'page_view':
 			if user_agent:
 				event['params']['user_agent'] = user_agent
