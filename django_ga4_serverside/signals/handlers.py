@@ -36,6 +36,9 @@ def on_request_finished(sender, **kwargs): #! pylint: disable=unused-argument
 	query = urlencode({'measurement_id': settings.GA4_ID, 'api_secret': settings.GA4_SECRET})
 	url = MEASUREMENT_DEBUG_URL if debug else MEASUREMENT_URL
 	url = f'{url}{query}'
+	if debug:
+		sys.stdout.write(f"URL {url}\n")
+		sys.stdout.write(json.dumps(payload, indent=2) + '\n')
 
 	payload = json.dumps(payload).encode('utf-8')
 
@@ -46,5 +49,4 @@ def on_request_finished(sender, **kwargs): #! pylint: disable=unused-argument
 	if result.status < 200 or result.status >= 300:
 		logger.warning("Failed to send event: %s", str(result.status))
 	if debug:
-		sys.stdout.write(f"URL {url}\n")
-		__import__('pprint').pprint(json.loads(result.read()))
+		sys.stdout.write(json.dumps(json.loads(result.read()), indent=2) + '\n')
