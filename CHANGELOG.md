@@ -1,3 +1,14 @@
+## 0.0.2 (2023-05-20)
+
+### Feat
+
+- Display request in debug mode
+- Send referer to page view event
+
+### Fix
+
+- send engagement_time_msec to enable user tracking
+
 ## 0.0.1 (2023-05-14)
 
 ### Feat
